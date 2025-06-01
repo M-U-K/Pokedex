@@ -7,17 +7,27 @@ export function useFetchPokemon(query: string) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!query) return;
+    if (!query || isNaN(Number(query)) || Number(query) <= 0) return;
+
+    const controller = new AbortController();
+    setError(null);
+    setData(null);
     setLoading(true);
 
-    fetch(`http://localhost:3000/pokemon/${query}`)
+    fetch(`http://localhost:3000/pokemon/${query}`, {
+      signal: controller.signal,
+    })
       .then((res) => {
         if (!res.ok) throw new Error("Erreur API");
         return res.json();
       })
       .then(setData)
-      .catch((e: Error) => setError(e.message))
+      .catch((e: Error) => {
+        if (e.name !== "AbortError") setError(e.message);
+      })
       .finally(() => setLoading(false));
+
+    return () => controller.abort();
   }, [query]);
 
   return { data, loading, error };
